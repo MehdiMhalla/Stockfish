@@ -24,7 +24,7 @@
 
 /// Simple macro to wrap a very common while loop, no facny, no flexibility,
 /// hardcoded names 'mlist' and 'from'.
-#define SERIALIZE(b) while (b) (mlist++)->move = make_move(from, pop_lsb(&b))
+#define SERIALIZE(b) while (b) {Square to = pop_lsb(&b); if (is_in_alamos(to)) (*mlist++).move = make_move(from, to);}
 
 /// Version used for pawns, where the 'from' square is given as a delta from the 'to' square
 #define SERIALIZE_PAWNS(b, d) while (b) { Square to = pop_lsb(&b); \
@@ -107,9 +107,9 @@ namespace {
     // Compute our parametrized parameters at compile time, named according to
     // the point of view of white side.
     const Color    Them     = (Us == WHITE ? BLACK    : WHITE);
-    const Bitboard TRank8BB = (Us == WHITE ? Rank8BB  : Rank1BB);
-    const Bitboard TRank7BB = (Us == WHITE ? Rank7BB  : Rank2BB);
-    const Bitboard TRank3BB = (Us == WHITE ? Rank3BB  : Rank6BB);
+    const Bitboard TRank8BB = (Us == WHITE ? Rank7BB  : Rank2BB);
+    const Bitboard TRank7BB = (Us == WHITE ? Rank6BB  : Rank3BB);
+    const Bitboard TRank3BB = (Us == WHITE ? Rank1BB  : Rank1BB);
     const Square   Up       = (Us == WHITE ? DELTA_N  : DELTA_S);
     const Square   Right    = (Us == WHITE ? DELTA_NE : DELTA_SW);
     const Square   Left     = (Us == WHITE ? DELTA_NW : DELTA_SE);
@@ -205,37 +205,45 @@ namespace {
   }
 
 
-  template<PieceType Pt, bool Checks> FORCE_INLINE
-  ExtMove* generate_moves(const Position& pos, ExtMove* mlist, Color us,
-                          Bitboard target, const CheckInfo* ci) {
-
-    assert(Pt != KING && Pt != PAWN);
-
-    const Square* pl = pos.list<Pt>(us);
-
-    for (Square from = *pl; from != SQ_NONE; from = *++pl)
-    {
-        if (Checks)
-        {
-            if (    (Pt == BISHOP || Pt == ROOK || Pt == QUEEN)
-                && !(PseudoAttacks[Pt][from] & target & ci->checkSq[Pt]))
-                continue;
-
-            if (unlikely(ci->dcCandidates) && (ci->dcCandidates & from))
-                continue;
-        }
-
-        Bitboard b = pos.attacks_from<Pt>(from) & target;
-
-        if (Checks)
-            b &= ci->checkSq[Pt];
-
-        SERIALIZE(b);
-    }
-
-    return mlist;
-  }
-
+	
+	
+	template<PieceType Pt, bool Checks> FORCE_INLINE
+	ExtMove* generate_moves(const Position& pos, ExtMove* mlist, Color us,
+							Bitboard target, const CheckInfo* ci) {
+		
+		assert(Pt != KING && Pt != PAWN);
+		
+		const Square* pl = pos.list<Pt>(us);
+		
+		for (Square from = *pl; from != SQ_NONE; from = *++pl)
+		{
+			if (is_in_alamos(from))
+			{
+				if (Checks)
+				{
+					if (    (Pt == BISHOP || Pt == ROOK || Pt == QUEEN)
+						&& !(PseudoAttacks[Pt][from] & target & ci->checkSq[Pt]))
+						continue;
+					
+					if (ci->dcCandidates && (ci->dcCandidates & from))
+						continue;
+				}
+				
+				{	
+					Bitboard b = pos.attacks_from<Pt>(from) & target;
+					
+					if (Checks)
+						b &= ci->checkSq[Pt];
+					
+					SERIALIZE(b);
+					
+				}
+			}
+		}
+		
+		return mlist;
+	}
+	
 
   template<Color Us, GenType Type> FORCE_INLINE
   ExtMove* generate_all(const Position& pos, ExtMove* mlist, Bitboard target,
@@ -312,31 +320,34 @@ template ExtMove* generate<NON_EVASIONS>(const Position&, ExtMove*);
 /// underpromotions that give check. Returns a pointer to the end of the move list.
 template<>
 ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* mlist) {
-
-  assert(!pos.checkers());
-
-  Color us = pos.side_to_move();
-  CheckInfo ci(pos);
-  Bitboard dc = ci.dcCandidates;
-
-  while (dc)
-  {
-     Square from = pop_lsb(&dc);
-     PieceType pt = type_of(pos.piece_on(from));
-
-     if (pt == PAWN)
-         continue; // Will be generated togheter with direct checks
-
-     Bitboard b = pos.attacks_from(Piece(pt), from) & ~pos.pieces();
-
-     if (pt == KING)
-         b &= ~PseudoAttacks[QUEEN][ci.ksq];
-
-     SERIALIZE(b);
-  }
-
-  return us == WHITE ? generate_all<WHITE, QUIET_CHECKS>(pos, mlist, ~pos.pieces(), &ci)
-                     : generate_all<BLACK, QUIET_CHECKS>(pos, mlist, ~pos.pieces(), &ci);
+	
+	assert(!pos.checkers());
+	
+	Color us = pos.side_to_move();
+	CheckInfo ci(pos);
+	Bitboard dc = ci.dcCandidates;
+	while (dc)
+	{
+		Square from = pop_lsb(&dc);
+		PieceType pt = type_of(pos.piece_on(from));
+		if (is_in_alamos(from))
+		{
+			
+			
+			if (pt == PAWN)
+				continue; // Will be generated togheter with direct checks
+			
+			Bitboard b = pos.attacks_from(Piece(pt), from) & ~pos.pieces();
+			
+			if (pt == KING)
+				b &= ~PseudoAttacks[QUEEN][ci.ksq];
+			
+			SERIALIZE(b);
+			
+		}}
+	
+	return us == WHITE ? generate_all<WHITE, QUIET_CHECKS>(pos, mlist, ~pos.pieces(), &ci)
+	: generate_all<BLACK, QUIET_CHECKS>(pos, mlist, ~pos.pieces(), &ci);
 }
 
 
@@ -388,7 +399,9 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* mlist) {
 
   // Generate evasions for king, capture and non capture moves
   b = pos.attacks_from<KING>(ksq) & ~pos.pieces(us) & ~sliderAttacks;
-  SERIALIZE(b);
+    from = ksq;
+	
+	if (is_in_alamos(from)) SERIALIZE(b);
 
   if (checkersCnt > 1)
       return mlist; // Double check, only a king move can save the day

@@ -42,7 +42,7 @@ const string engine_info(bool to_uci) {
   string month, day, year;
   stringstream s, date(__DATE__); // From compiler, format is "Sep 21 2008"
 
-  s << "Stockfish " << Version << setfill('0');
+  s << "Stockfish6x6 " << Version << setfill('0');
 
   if (Version.empty())
   {

@@ -39,6 +39,7 @@ enum EndgameType {
   KPK,   // KP vs K
   KRKP,  // KR vs KP
   KRKB,  // KR vs KB
+  KRNKR, //added for 5x5
   KRKN,  // KR vs KN
   KQKP,  // KQ vs KP
   KQKR,  // KQ vs KR
