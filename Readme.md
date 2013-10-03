@@ -12,6 +12,19 @@ to one search thread it is therefore recommended to inspect the value of
 the *Threads* UCI parameter, and to make sure it equals the number of CPU
 cores on your computer.
 
+This branch containsa modified version of stockfish that plays gardner chess 
+or other 5x5 minichess variants.
+It uses Ranks 2 to 6 and Files B to F
+The engine  can be used by any gui supporting uci engines until a promotion move is played.
+
+an adapted gui can be obtained using scid patch
+sources from : svn checkout http://svn.code.sf.net/p/scidvspc/code/ scidvspc-code
+and then apply the patch by running "patch -p0 < patches/minichess5x5.diff"
+
+Information about minichess : the proof that gardner is a draw, and Mallet 
+is a win for white as long as a deep analysis of gardner variations in a pgn file. Can be found at 
+http://membres-lig.imag.fr/prost/MiniChessResolution/
+
 
 ### Files
 
