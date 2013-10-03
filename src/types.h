@@ -88,8 +88,8 @@ const bool Is64Bit = false;
 typedef uint64_t Key;
 typedef uint64_t Bitboard;
 
-const int MAX_MOVES      = 256;
-const int MAX_PLY        = 100;
+const int MAX_MOVES      = 192;
+const int MAX_PLY        = 192;
 const int MAX_PLY_PLUS_6 = MAX_PLY + 6;
 
 /// A move needs 16 bits to be stored
@@ -432,6 +432,10 @@ inline Move make(Square from, Square to, PieceType pt = KNIGHT) {
 inline bool is_ok(Move m) {
   return from_sq(m) != to_sq(m); // Catches also MOVE_NULL and MOVE_NONE
 }
+inline bool is_in_gardner(Square s) { return (!(rank_of(s) == RANK_8 || rank_of(s) == RANK_1||rank_of(s) == RANK_7||file_of(s) == FILE_A||file_of(s) == FILE_G
+												||file_of(s) == FILE_H));}
+
+inline bool is_in_alamos(Square s) { return (!(rank_of(s) == RANK_8 || rank_of(s) == RANK_1||file_of(s) == FILE_A ||file_of(s) == FILE_H));}
 
 #include <string>
 
