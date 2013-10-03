@@ -12,6 +12,12 @@ to one search thread it is therefore recommended to inspect the value of
 the *Threads* UCI parameter, and to make sure it equals the number of CPU
 cores on your computer.
 
+This branch contains a modified version of stockfish that plays losalamos chess or other 6x6 minichess variants.
+It uses Ranks 2 to 7 and Files B to H.
+The engine can be used by any gui supporting uci engines until a promotion move is played.
+
+
+Information about minichess ican be found at http://membres-lig.imag.fr/prost/MiniChessResolution/
 
 ### Files
 
