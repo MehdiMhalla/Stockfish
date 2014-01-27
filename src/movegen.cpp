@@ -24,7 +24,8 @@
 
 /// Simple macro to wrap a very common while loop, no fancy, no flexibility,
 /// hardcoded names 'mlist' and 'from'.
-#define SERIALIZE(b) while (b) (mlist++)->move = make_move(from, pop_lsb(&b))
+#define SERIALIZE(b) while (b) {Square to = pop_lsb(&b); \
+                                if (is_in_alamos(to)) (mlist++)->move = make_move(from,to);}
 
 /// Version used for pawns, where the 'from' square is given as a delta from the 'to' square
 #define SERIALIZE_PAWNS(b, d) while (b) { Square to = pop_lsb(&b); \
@@ -34,7 +35,7 @@ namespace {
   template<CastlingSide Side, bool Checks, bool Chess960>
   ExtMove* generate_castling(const Position& pos, ExtMove* mlist, Color us) {
 
-    if (pos.castling_impeded(us, Side) || !pos.can_castle(make_castling_flag(us, Side)))
+    //ALAMOS : NO CASTLING  if  (pos.castling_impeded(us, Side) || !pos.can_castle(make_castling_flag(us, Side)))
         return mlist;
 
     // After castling, the rook and king final positions are the same in Chess960
@@ -84,7 +85,7 @@ namespace {
         if (Type == QUIETS || Type == EVASIONS || Type == NON_EVASIONS)
         {
             (mlist++)->move = make<PROMOTION>(to - Delta, to, ROOK);
-            (mlist++)->move = make<PROMOTION>(to - Delta, to, BISHOP);
+	    // ALAMOS NO BISHOP PROMOTION (mlist++)->move = make<PROMOTION>(to - Delta, to, BISHOP);
             (mlist++)->move = make<PROMOTION>(to - Delta, to, KNIGHT);
         }
 
@@ -107,12 +108,12 @@ namespace {
     // Compute our parametrized parameters at compile time, named according to
     // the point of view of white side.
     const Color    Them     = (Us == WHITE ? BLACK    : WHITE);
-    const Bitboard TRank8BB = (Us == WHITE ? Rank8BB  : Rank1BB);
-    const Bitboard TRank7BB = (Us == WHITE ? Rank7BB  : Rank2BB);
-    const Bitboard TRank3BB = (Us == WHITE ? Rank3BB  : Rank6BB);
-    const Square   Up       = (Us == WHITE ? DELTA_N  : DELTA_S);
-    const Square   Right    = (Us == WHITE ? DELTA_NE : DELTA_SW);
-    const Square   Left     = (Us == WHITE ? DELTA_NW : DELTA_SE);
+    const Bitboard TRank8BB = (Us == WHITE ? Rank7BB  : Rank2BB);
+    const Bitboard TRank7BB = (Us == WHITE ? Rank6BB  : Rank3BB);
+    const Bitboard TRank3BB = (Us == WHITE ? Rank1BB  : Rank1BB);
+    const Square Up = (Us == WHITE ? DELTA_N : DELTA_S);
+    const Square Right = (Us == WHITE ? DELTA_NE : DELTA_SW);
+    const Square Left = (Us == WHITE ? DELTA_NW : DELTA_SE);
 
     Bitboard b1, b2, dc1, dc2, emptySquares;
 
@@ -245,7 +246,7 @@ namespace {
 
     mlist = generate_pawn_moves<Us, Type>(pos, mlist, target, ci);
     mlist = generate_moves<KNIGHT, Checks>(pos, mlist, Us, target, ci);
-    mlist = generate_moves<BISHOP, Checks>(pos, mlist, Us, target, ci);
+    // ALAMOS no bishops mlist = generate_moves<BISHOP, Checks>(pos, mlist, Us, target, ci);
     mlist = generate_moves<  ROOK, Checks>(pos, mlist, Us, target, ci);
     mlist = generate_moves< QUEEN, Checks>(pos, mlist, Us, target, ci);
 
