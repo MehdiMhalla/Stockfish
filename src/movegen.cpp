@@ -29,7 +29,7 @@
 
 /// Version used for pawns, where the 'from' square is given as a delta from the 'to' square
 #define SERIALIZE_PAWNS(b, d) while (b) { Square to = pop_lsb(&b); \
-                                         (mlist++)->move = make_move(to - (d), to); }
+                                if (is_in_alamos(to)) (mlist++)->move = make_move(to - (d), to); }
 namespace {
 
   template<CastlingSide Side, bool Checks, bool Chess960>
