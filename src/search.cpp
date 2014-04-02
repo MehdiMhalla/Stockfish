@@ -794,7 +794,7 @@ moves_loop: // When in check and at SpNode search starts from here
       }
 
       // a little tweak to extension to see if better when extend more already here when exactly zero
-      if (value==0) ext =ONE_PLY;
+      if (value==0) ext =ONE_PLY/2;
       
       // Update the current move (this must be done after singular extension search)
       newDepth = depth - ONE_PLY + ext;
