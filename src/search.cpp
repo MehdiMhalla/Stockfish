@@ -732,7 +732,7 @@ moves_loop: // When in check and at SpNode search starts from here
           continue;
 
 
-        // Only search queen and knight promitions at root 
+        // Only search queen and knight promotions if not at root 
         
        if (!RootNode && type_of(move) == PROMOTION && (promotion_type(move) == ROOK || promotion_type(move) == BISHOP))
             continue;
