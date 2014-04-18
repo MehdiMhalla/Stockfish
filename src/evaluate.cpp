@@ -129,13 +129,21 @@ namespace {
   // Outpost[PieceType][Square] contains bonuses for knights and bishops outposts,
   // indexed by piece type and square (from white's point of view).
   const Value Outpost[][SQUARE_NB] = {
-  {// A     B     C     D     E     F     G     H
+  /*{// A     B     C     D     E     F     G     H
     V(0), V(0), V(0), V(0), V(0), V(0), V(0), V(0), // Knights
     V(0), V(0), V(0), V(0), V(0), V(0), V(0), V(0),
     V(0), V(0), V(4), V(8), V(8), V(4), V(0), V(0),
     V(0), V(4),V(17),V(26),V(26),V(17), V(4), V(0),
     V(0), V(8),V(26),V(35),V(35),V(26), V(8), V(0),
-    V(0), V(4),V(17),V(17),V(17),V(17), V(4), V(0) },
+    V(0), V(4),V(17),V(17),V(17),V(17), V(4), V(0) }
+   */
+   {// A     B     C     D     E     F     G     H
+          V(0), V(0), V(0), V(0), V(0), V(0), V(0), V(0), // Knights
+          V(0), V(0), V(0), V(4), V(8), V(4), V(0), V(0),
+          V(0), V(0), V(4), V(17), V(17), V(4), V(0), V(0),
+          V(0), V(0),V(8),V(26),V(26),V(8), V(0), V(0),
+          V(0), V(0),V(4),V(17),V(17),V(4), V(0), V(0),
+          V(0), V(0),V(0),V(0),V(0),V(0), V(0), V(0) },
   {
     V(0), V(0), V(0), V(0), V(0), V(0), V(0), V(0), // Bishops
     V(0), V(0), V(0), V(0), V(0), V(0), V(0), V(0),
@@ -272,10 +280,10 @@ namespace {
 
     const Color Them = (Us == WHITE ? BLACK : WHITE);
 
-    assert (Pt == BISHOP || Pt == KNIGHT);
+    assert ( Pt == KNIGHT);
 
     // Initial bonus based on square
-    Value bonus = Outpost[Pt == BISHOP][relative_square(Us, s)];
+    Value bonus = Outpost[0][relative_square(Us, s)];
 
     // Increase bonus if supported by pawn, especially if the opponent has
     // no minor piece which can trade with the outpost piece.
@@ -310,8 +318,7 @@ namespace {
     while ((s = *pl++) != SQ_NONE)
     {
         // Find attacked squares, including x-ray attacks for bishops and rooks
-        b = Pt == BISHOP ? attacks_bb<BISHOP>(s, pos.pieces() ^ pos.pieces(Us, QUEEN))
-          : Pt ==   ROOK ? attacks_bb<  ROOK>(s, pos.pieces() ^ pos.pieces(Us, ROOK, QUEEN))
+        b = Pt ==   ROOK ? attacks_bb<  ROOK>(s, pos.pieces() ^ pos.pieces(Us, ROOK, QUEEN))
                          : pos.attacks_from<Pt>(s);
 
         if (ei.pinnedPieces[Us] & s)
@@ -330,7 +337,6 @@ namespace {
 
         if (Pt == QUEEN)
             b &= ~(  ei.attackedBy[Them][KNIGHT]
-                   | ei.attackedBy[Them][BISHOP]
                    | ei.attackedBy[Them][ROOK]);
 
         int mob = Pt != QUEEN ? popcount<Max15>(b & mobilityArea[Us])
@@ -343,12 +349,8 @@ namespace {
         if (ei.attackedBy[Them][PAWN] & s)
             score -= ThreatenedByPawn[Pt];
 
-        if (Pt == BISHOP || Pt == KNIGHT)
+        if (Pt == KNIGHT)
         {
-            // Penalty for bishop with same colored pawns
-            if (Pt == BISHOP)
-                score -= BishopPawns * ei.pi->pawns_on_same_color_squares(Us, s);
-
             // Penalty for knight when there are few enemy pawns
             if (Pt == KNIGHT)
                 score -= KnightPawns * std::max(5 - pos.count<PAWN>(Them), 0);
@@ -366,12 +368,12 @@ namespace {
         if (Pt == ROOK)
         {
             // Rook on 7th rank and enemy king trapped on 8th
-            if (   relative_rank(Us, s) == RANK_7
-                && relative_rank(Us, pos.king_square(Them)) == RANK_8)
+            if (   relative_rank(Us, s) == RANK_6
+                && relative_rank(Us, pos.king_square(Them)) == RANK_7)
                 score += RookOn7th;
 
             // Rook piece attacking enemy pawns on the same rank/file
-            if (relative_rank(Us, s) >= RANK_5)
+            if (relative_rank(Us, s) >= RANK_4)
             {
                 Bitboard pawns = pos.pieces(Them, PAWN) & PseudoAttacks[ROOK][s];
                 if (pawns)
@@ -390,24 +392,11 @@ namespace {
             // Penalize rooks which are trapped by a king. Penalize more if the
             // king has lost its castling capability.
             if (   ((file_of(ksq) < FILE_E) == (file_of(s) < file_of(ksq)))
-                && (rank_of(ksq) == rank_of(s) || relative_rank(Us, ksq) == RANK_1)
+                && (rank_of(ksq) == rank_of(s) || relative_rank(Us, ksq) == RANK_2)
                 && !ei.pi->semiopen_side(Us, file_of(ksq), file_of(s) < file_of(ksq)))
                 score -= (TrappedRook - make_score(mob * 8, 0)) * (1 + !pos.can_castle(Us));
         }
 
-        // An important Chess960 pattern: A cornered bishop blocked by a friendly
-        // pawn diagonally in front of it is a very serious problem, especially
-        // when that pawn is also blocked.
-        if (   Pt == BISHOP
-            && pos.is_chess960()
-            && (s == relative_square(Us, SQ_A1) || s == relative_square(Us, SQ_H1)))
-        {
-            Square d = pawn_push(Us) + (file_of(s) == FILE_A ? DELTA_E : DELTA_W);
-            if (pos.piece_on(s + d) == make_piece(Us, PAWN))
-                score -= !pos.empty(s + d + pawn_push(Us))                ? TrappedBishopA1H1 * 4
-                        : pos.piece_on(s + d + d) == make_piece(Us, PAWN) ? TrappedBishopA1H1 * 2
-                                                                          : TrappedBishopA1H1;
-        }
     }
 
     if (Trace)
@@ -444,7 +433,7 @@ namespace {
         undefended =  ei.attackedBy[Them][ALL_PIECES]
                     & ei.attackedBy[Us][KING]
                     & ~(  ei.attackedBy[Us][PAWN]   | ei.attackedBy[Us][KNIGHT]
-                        | ei.attackedBy[Us][BISHOP] | ei.attackedBy[Us][ROOK]
+                        | ei.attackedBy[Us][ROOK]
                         | ei.attackedBy[Us][QUEEN]);
 
         // Initialize the 'attackUnits' variable, which is used later on as an
@@ -465,7 +454,7 @@ namespace {
         {
             // ...and then remove squares not supported by another enemy piece
             b &= (  ei.attackedBy[Them][PAWN]   | ei.attackedBy[Them][KNIGHT]
-                  | ei.attackedBy[Them][BISHOP] | ei.attackedBy[Them][ROOK]);
+                   | ei.attackedBy[Them][ROOK]);
 
             if (b)
                 attackUnits +=  QueenContactCheck
@@ -485,7 +474,7 @@ namespace {
         {
             // ...and then remove squares not supported by another enemy piece
             b &= (  ei.attackedBy[Them][PAWN]   | ei.attackedBy[Them][KNIGHT]
-                  | ei.attackedBy[Them][BISHOP] | ei.attackedBy[Them][QUEEN]);
+                  | ei.attackedBy[Them][QUEEN]);
 
             if (b)
                 attackUnits +=  RookContactCheck
@@ -510,9 +499,9 @@ namespace {
             attackUnits += RookCheck * popcount<Max15>(b);
 
         // Enemy bishops safe checks
-        b = b2 & ei.attackedBy[Them][BISHOP];
-        if (b)
-            attackUnits += BishopCheck * popcount<Max15>(b);
+       // b = b2 & ei.attackedBy[Them][BISHOP];
+        //if (b)
+         //   attackUnits += BishopCheck * popcount<Max15>(b);
 
         // Enemy knights safe checks
         b = pos.attacks_from<KNIGHT>(ksq) & ei.attackedBy[Them][KNIGHT] & safe;
