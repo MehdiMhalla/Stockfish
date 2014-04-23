@@ -1108,18 +1108,15 @@ Value Position::see(Move m) const {
 }
 
 
-/// Position::is_draw() tests whether the position is drawn by material, 50 moves
-/// rule or repetition. It does not detect stalemates.
+/// Position::is_draw() tests whether the position is drawn by material
+///  or repetition. It does not detect stalemates or  50 moves rule.
 
 bool Position::is_draw() const {
 
   if (   !pieces(PAWN)
       && (non_pawn_material(WHITE) + non_pawn_material(BLACK) <= BishopValueMg))
       return true;
-
-  if (st->rule50 > 99 && (!checkers() || MoveList<LEGAL>(*this).size()))
-      return true;
-
+ 
   StateInfo* stp = st;
   for (int i = 2, e = std::min(st->rule50, st->pliesFromNull); i <= e; i += 2)
   {
