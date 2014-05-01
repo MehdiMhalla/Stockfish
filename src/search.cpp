@@ -581,12 +581,15 @@ namespace {
         Gains.update(pos.piece_on(to), to, -(ss-1)->staticEval - ss->staticEval);
     }
 
+    // a global pruning skipping test first for razoring futility nullmove and prob cut steps 6 to 9
+    if (!PvNode
+          &&  abs(eval) < VALUE_KNOWN_WIN)
+    {
+      
     // Step 6. Razoring (skipped when in check)
-    if (   !PvNode
-        &&  depth < 4 * ONE_PLY
+    if (    depth < 4 * ONE_PLY
         &&  eval + razor_margin(depth) <= alpha
         &&  ttMove == MOVE_NONE
-        &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
         && !pos.pawn_on_7th(pos.side_to_move()))
     {
         Value ralpha = alpha - razor_margin(depth);
@@ -596,22 +599,16 @@ namespace {
     }
 
     // Step 7. Futility pruning: child node (skipped when in check)
-    if (   !PvNode
-        && !ss->skipNullMove
+    if (   !ss->skipNullMove
         &&  depth < 7 * ONE_PLY
         &&  eval - futility_margin(depth) >= beta
-        &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
-        &&  abs(eval) < VALUE_KNOWN_WIN
         &&  pos.non_pawn_material(pos.side_to_move()))
         return eval - futility_margin(depth);
 
     // Step 8. Null move search with verification search (is omitted in PV nodes)
-    if (   !PvNode
-        && !ss->skipNullMove
+    if (  !ss->skipNullMove
         &&  depth >= 2 * ONE_PLY
         &&  eval >= beta
-        &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
-        &&  abs(eval) < VALUE_KNOWN_WIN
         &&  pos.non_pawn_material(pos.side_to_move()))
     {
         ss->currentMove = MOVE_NULL;
@@ -654,10 +651,8 @@ namespace {
     // If we have a very good capture (i.e. SEE > seeValues[captured_piece_type])
     // and a reduced search returns a value much above beta, we can (almost) safely
     // prune the previous move.
-    if (   !PvNode
-        &&  depth >= 5 * ONE_PLY
-        && !ss->skipNullMove
-        &&  abs(beta) < VALUE_MATE_IN_MAX_PLY)
+    if (    depth >= 5 * ONE_PLY
+        && !ss->skipNullMove)
     {
         Value rbeta = std::min(beta + 200, VALUE_INFINITE);
         Depth rdepth = depth - 4 * ONE_PLY;
@@ -680,7 +675,7 @@ namespace {
                     return value;
             }
     }
-
+    }
     // Step 10. Internal iterative deepening (skipped when in check)
     if (    depth >= (PvNode ? 5 * ONE_PLY : 8 * ONE_PLY)
         && !ttMove
