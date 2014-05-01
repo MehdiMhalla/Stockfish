@@ -583,7 +583,8 @@ namespace {
 
     // a global pruning skipping test first for razoring futility nullmove and prob cut steps 6 to 9
     if (!PvNode
-          &&  abs(eval) < VALUE_KNOWN_WIN)
+          &&  abs(eval) < VALUE_KNOWN_WIN
+          )
     {
       
     // Step 6. Razoring (skipped when in check)
@@ -597,19 +598,21 @@ namespace {
         if (v <= ralpha)
             return v;
     }
-
+    if (   !ss->skipNullMove)
+    {
     // Step 7. Futility pruning: child node (skipped when in check)
-    if (   !ss->skipNullMove
-        &&  depth < 7 * ONE_PLY
+    if (     depth < 7 * ONE_PLY
         &&  eval - futility_margin(depth) >= beta
-        &&  pos.non_pawn_material(pos.side_to_move()))
+        &&  pos.non_pawn_material(pos.side_to_move())
+        )
         return eval - futility_margin(depth);
 
     // Step 8. Null move search with verification search (is omitted in PV nodes)
-    if (  !ss->skipNullMove
-        &&  depth >= 2 * ONE_PLY
+    if (    depth >= 2 * ONE_PLY
         &&  eval >= beta
-        &&  pos.non_pawn_material(pos.side_to_move()))
+        &&  pos.non_pawn_material(pos.side_to_move())
+        && !bestValue
+        )
     {
         ss->currentMove = MOVE_NULL;
 
@@ -651,8 +654,7 @@ namespace {
     // If we have a very good capture (i.e. SEE > seeValues[captured_piece_type])
     // and a reduced search returns a value much above beta, we can (almost) safely
     // prune the previous move.
-    if (    depth >= 5 * ONE_PLY
-        && !ss->skipNullMove)
+    if (    depth >= 5 * ONE_PLY)
     {
         Value rbeta = std::min(beta + 200, VALUE_INFINITE);
         Depth rdepth = depth - 4 * ONE_PLY;
@@ -674,6 +676,7 @@ namespace {
                 if (value >= rbeta)
                     return value;
             }
+    }
     }
     }
     // Step 10. Internal iterative deepening (skipped when in check)
@@ -867,7 +870,8 @@ moves_loop: // When in check and at SpNode search starts from here
           && !captureOrPromotion
           &&  move != ttMove
           &&  move != ss->killers[0]
-          &&  move != ss->killers[1])
+          &&  move != ss->killers[1]
+        )
       {
           ss->reduction = reduction<PvNode>(improving, depth, moveCount);
 
