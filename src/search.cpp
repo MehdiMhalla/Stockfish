@@ -583,7 +583,7 @@ namespace {
 
     // a global pruning skipping test first for razoring futility nullmove and prob cut steps 6 to 9
     if (!PvNode
-          &&  eval > VALUE_MN_KNOWN_WIN)
+          &&  abs(eval) < VALUE_KNOWN_WIN)
     {
     // Step 6. Razoring (skipped when in check)
     if (    depth < 4 * ONE_PLY
@@ -608,7 +608,7 @@ namespace {
     if (    depth >= 2 * ONE_PLY
         &&  eval >= beta
         &&  pos.non_pawn_material(pos.side_to_move())
-        &&  (bestValue >  VALUE_MN_KNOWN_WIN))
+        &&  (abs(bestValue) < VALUE_KNOWN_WIN))
     {
         ss->currentMove = MOVE_NULL;
 
@@ -776,7 +776,7 @@ moves_loop: // When in check and at SpNode search starts from here
           &&  move == ttMove
           && !ext
           &&  pos.legal(move, ci.pinned)
-          &&  ttValue >VALUE_MN_KNOWN_WIN)
+          &&  abs(ttValue) < VALUE_KNOWN_WIN)
       {
           assert(ttValue != VALUE_NONE);
 
@@ -1148,7 +1148,7 @@ moves_loop: // When in check and at SpNode search starts from here
           && !InCheck
           && !givesCheck
           &&  move != ttMove
-          &&  futilityBase > VALUE_MN_KNOWN_WIN
+          &&  futilityBase > -VALUE_KNOWN_WIN
           && !pos.advanced_pawn_push(move))
       {
           assert(type_of(move) != ENPASSANT); // Due to !pos.advanced_pawn_push
