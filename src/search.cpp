@@ -608,7 +608,7 @@ namespace {
     if (    depth >= 2 * ONE_PLY
         &&  eval >= beta
         &&  pos.non_pawn_material(pos.side_to_move())
-        &&  (abs(bestValue) < VALUE_KNOWN_WIN))
+        &&  (bestValue > - VALUE_KNOWN_WIN))
     {
         ss->currentMove = MOVE_NULL;
 
