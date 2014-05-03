@@ -583,7 +583,7 @@ namespace {
 
     // a global pruning skipping test first for razoring futility nullmove and prob cut steps 6 to 9
     if (!PvNode
-          &&  abs(eval) < VALUE_KNOWN_WIN)
+          &&  eval < VALUE_KNOWN_WIN)
     {
     // Step 6. Razoring (skipped when in check)
     if (    depth < 4 * ONE_PLY
@@ -776,7 +776,7 @@ moves_loop: // When in check and at SpNode search starts from here
           &&  move == ttMove
           && !ext
           &&  pos.legal(move, ci.pinned)
-          &&  abs(ttValue) < VALUE_KNOWN_WIN)
+          &&  ttValue < VALUE_KNOWN_WIN)
       {
           assert(ttValue != VALUE_NONE);
 
