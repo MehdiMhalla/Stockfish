@@ -583,7 +583,7 @@ namespace {
 
     // a global pruning skipping test first for razoring futility nullmove and prob cut steps 6 to 9
     if (!PvNode
-          &&  eval < VALUE_KNOWN_WIN)
+          &&  abs(eval) < VALUE_KNOWN_WIN)
     {
     // Step 6. Razoring (skipped when in check)
     if (    depth < 4 * ONE_PLY
@@ -607,8 +607,8 @@ namespace {
     // Step 8. Null move search with verification search (is omitted in PV nodes)
     if (    depth >= 2 * ONE_PLY
         &&  eval >= beta
-        &&  pos.non_pawn_material(pos.side_to_move())
-        &&  8*BestMoveChanges > 1)
+        &&  pos.non_pawn_material(pos.side_to_move()))
+//        &&  8*BestMoveChanges > 1)
     {
         ss->currentMove = MOVE_NULL;
 
