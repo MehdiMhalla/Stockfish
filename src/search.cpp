@@ -630,7 +630,7 @@ namespace {
             if (nullValue >= VALUE_MATE_IN_MAX_PLY)
                 nullValue = beta;
 
-            if (depth < 12 * ONE_PLY && (Time::now() - SearchTime) > TimeMgr.available_time() * 4 / 100 )
+            if (depth < 12 * ONE_PLY && (Time::now() - SearchTime) > TimeMgr.available_time() * 8 / 100 )
                 return nullValue;
 
             // Do verification search at high depths
