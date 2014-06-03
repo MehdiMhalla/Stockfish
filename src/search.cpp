@@ -25,11 +25,11 @@
 #include <iostream>
 #include <sstream>
 
-#include "book.h"
 #include "evaluate.h"
 #include "movegen.h"
 #include "movepick.h"
 #include "notation.h"
+#include "rkiss.h"
 #include "search.h"
 #include "timeman.h"
 #include "thread.h"
@@ -180,8 +180,6 @@ uint64_t Search::perft(Position& pos, Depth depth) {
 
 void Search::think() {
 
-  static PolyglotBook book; // Defined static to initialize the PRNG only once
-
   RootColor = RootPos.side_to_move();
   TimeMgr.init(Limits, RootPos.game_ply(), RootColor);
 
@@ -197,17 +195,6 @@ void Search::think() {
                 << sync_endl;
 
       goto finalize;
-  }
-
-  if (Options["OwnBook"] && !Limits.infinite && !Limits.mate)
-  {
-      Move bookMove = book.probe(RootPos, Options["Book File"], Options["Best Book Move"]);
-
-      if (bookMove && std::count(RootMoves.begin(), RootMoves.end(), bookMove))
-      {
-          std::swap(RootMoves[0], *std::find(RootMoves.begin(), RootMoves.end(), bookMove));
-          goto finalize;
-      }
   }
 
   if (Options["Write Search Log"])
@@ -879,6 +866,13 @@ moves_loop: // When in check and at SpNode search starts from here
               ss->reduction += ONE_PLY / 2;
 
           if (move == countermoves[0] || move == countermoves[1])
+              ss->reduction = std::max(DEPTH_ZERO, ss->reduction - ONE_PLY);
+
+          // Decrease reduction for moves that escape a capture
+          if (   ss->reduction
+              && type_of(move) == NORMAL
+              && type_of(pos.piece_on(to_sq(move))) != PAWN
+              && pos.see(make_move(to_sq(move), from_sq(move))) < 0)
               ss->reduction = std::max(DEPTH_ZERO, ss->reduction - ONE_PLY);
 
           Depth d = std::max(newDepth - ss->reduction, ONE_PLY);
@@ -1559,7 +1553,7 @@ void Thread::idle_loop() {
           if (Threads.size() > 2)
               for (size_t i = 0; i < Threads.size(); ++i)
               {
-                  int size = Threads[i]->splitPointsSize; // Local copy
+                  const int size = Threads[i]->splitPointsSize; // Local copy
                   sp = size ? &Threads[i]->splitPoints[size - 1] : NULL;
 
                   if (   sp
