@@ -42,7 +42,6 @@ namespace Search {
   LimitsType Limits;
   std::vector<RootMove> RootMoves;
   Position RootPos;
-  Color RootColor;
   Time::point SearchTime;
   StateStackPtr SetupStates;
 }
@@ -180,12 +179,11 @@ uint64_t Search::perft(Position& pos, Depth depth) {
 
 void Search::think() {
 
-  RootColor = RootPos.side_to_move();
-  TimeMgr.init(Limits, RootPos.game_ply(), RootColor);
+  TimeMgr.init(Limits, RootPos.game_ply(), RootPos.side_to_move());
 
   int cf = Options["Contempt Factor"] * PawnValueEg / 100; // From centipawns
-  DrawValue[ RootColor] = VALUE_DRAW - Value(cf);
-  DrawValue[~RootColor] = VALUE_DRAW + Value(cf);
+  DrawValue[ RootPos.side_to_move()] = VALUE_DRAW - Value(cf);
+  DrawValue[~RootPos.side_to_move()] = VALUE_DRAW + Value(cf);
 
   if (RootMoves.empty())
   {
@@ -203,8 +201,8 @@ void Search::think() {
       log << "\nSearching: "  << RootPos.fen()
           << "\ninfinite: "   << Limits.infinite
           << " ponder: "      << Limits.ponder
-          << " time: "        << Limits.time[RootColor]
-          << " increment: "   << Limits.inc[RootColor]
+          << " time: "        << Limits.time[RootPos.side_to_move()]
+          << " increment: "   << Limits.inc[RootPos.side_to_move()]
           << " moves to go: " << Limits.movestogo
           << "\n" << std::endl;
   }
@@ -272,7 +270,6 @@ namespace {
     Value bestValue, alpha, beta, delta;
 
     std::memset(ss-2, 0, 5 * sizeof(Stack));
-    (ss-1)->currentMove = MOVE_NULL; // Hack to skip update gains
 
     depth = 0;
     BestMoveChanges = 0;
@@ -547,7 +544,9 @@ namespace {
     }
     else
     {
-        eval = ss->staticEval = evaluate(pos);
+        eval = ss->staticEval =
+        (ss-1)->currentMove != MOVE_NULL ? evaluate(pos) : -(ss-1)->staticEval + 2 * Eval::Tempo;
+
         TT.store(posKey, VALUE_NONE, BOUND_NONE, DEPTH_NONE, MOVE_NONE, ss->staticEval);
     }
 
@@ -555,6 +554,7 @@ namespace {
         &&  ss->staticEval != VALUE_NONE
         && (ss-1)->staticEval != VALUE_NONE
         && (move = (ss-1)->currentMove) != MOVE_NULL
+        &&  move != MOVE_NONE
         &&  type_of(move) == NORMAL)
     {
         Square to = to_sq(move);
@@ -1110,7 +1110,8 @@ moves_loop: // When in check and at SpNode search starts from here
                     bestValue = ttValue;
         }
         else
-            ss->staticEval = bestValue = evaluate(pos);
+            ss->staticEval = bestValue =
+            (ss-1)->currentMove != MOVE_NULL ? evaluate(pos) : -(ss-1)->staticEval + 2 * Eval::Tempo;
 
         // Stand pat. Return immediately if static value is at least beta
         if (bestValue >= beta)
