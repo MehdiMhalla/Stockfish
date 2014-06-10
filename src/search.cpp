@@ -595,7 +595,8 @@ namespace {
         &&  depth >= 2 * ONE_PLY
         &&  eval >= beta
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
-        &&  pos.non_pawn_material(pos.side_to_move()))
+        &&  pos.non_pawn_material(pos.side_to_move())
+        &&  depth < 12* ONE_PLY)
     {
         ss->currentMove = MOVE_NULL;
 
@@ -619,8 +620,10 @@ namespace {
             if (nullValue >= VALUE_MATE_IN_MAX_PLY)
                 nullValue = beta;
 
-            if (depth < 12 * ONE_PLY)
+           
+            //if (depth < 12 * ONE_PLY)
                 return nullValue;
+            /*
 
             // Do verification search at high depths
             ss->skipNullMove = true;
@@ -630,7 +633,8 @@ namespace {
 
             if (v >= beta)
                 return nullValue;
-        }
+        */
+             }
     }
 
     // Step 9. ProbCut (skipped when in check)
