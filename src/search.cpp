@@ -593,10 +593,10 @@ namespace {
     if (   !PvNode
         && !ss->skipNullMove
         &&  depth >= 2 * ONE_PLY
+        &&  depth < 12* ONE_PLY
         &&  eval >= beta
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
-        &&  pos.non_pawn_material(pos.side_to_move())
-        &&  depth < 12* ONE_PLY)
+        &&  pos.non_pawn_material(pos.side_to_move()))
     {
         ss->currentMove = MOVE_NULL;
 
